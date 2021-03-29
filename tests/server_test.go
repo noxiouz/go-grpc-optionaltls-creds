@@ -97,9 +97,76 @@ func TestOptionalTLS(t *testing.T) {
 	}
 
 	t.Run("Plain2TLS", func(t *testing.T) {
-		testFunc(t, grpc.WithInsecure())
+		for i := 0; i < 5; i += 1 {
+			testFunc(t, grpc.WithInsecure())
+		}
 	})
 	t.Run("TLS2TLS", func(t *testing.T) {
-		testFunc(t, grpc.WithTransportCredentials(tc.client))
+		for i := 0; i < 5; i += 1 {
+			testFunc(t, grpc.WithTransportCredentials(tc.client))
+		}
 	})
+}
+
+func TestDynamicOption(t *testing.T) {
+	testCtx, testCancel := context.WithCancel(context.Background())
+	defer testCancel()
+
+	tc, err := createCredentials()
+	if err != nil {
+		t.Fatalf("failed to create credentials %v", err)
+	}
+
+	lis, err := net.Listen("tcp", "")
+	if err != nil {
+		t.Fatalf("failed to listen %v", err)
+	}
+	defer lis.Close()
+	addr := lis.Addr().String()
+
+	var isActive bool = false
+	dynamicOptionF := optionaltls.DynamicOptionFunc(func() bool {
+		return isActive
+	})
+
+	srv := createUnstartedServer(optionaltls.NewWithDynamicOption(tc.server, dynamicOptionF))
+	go func() {
+		srv.Serve(lis)
+	}()
+	defer srv.Stop()
+
+	testFunc := func(dialOpt grpc.DialOption) error {
+		ctx, cancel := context.WithTimeout(testCtx, 5*time.Second)
+		defer cancel()
+		conn, err := grpc.DialContext(ctx, addr, dialOpt)
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		c := pb.NewGreeterClient(conn)
+		_, err = c.SayHello(ctx, &pb.HelloRequest{Name: "noxiouz"})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	for i := 0; i < 5; i++ {
+		isActive = true
+		if !dynamicOptionF.IsActive() {
+			t.Fatalf("failed to turn on dynamic option")
+		}
+
+		if err = testFunc(grpc.WithInsecure()); err != nil {
+			t.Fatalf("failed when DynamicOption is active %v", err)
+		}
+
+		isActive = false
+		if dynamicOptionF.IsActive() {
+			t.Fatalf("failed to turn off dynamic option")
+		}
+		if err = testFunc(grpc.WithInsecure()); err == nil {
+			t.Fatalf("expected to fail when DynamicOption is not active %v", dynamicOptionF.IsActive())
+		}
+	}
 }

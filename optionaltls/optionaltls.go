@@ -8,7 +8,8 @@ import (
 )
 
 type optionalTLSCreds struct {
-	tc credentials.TransportCredentials
+	tc            credentials.TransportCredentials
+	dynamicOption DynamicOption
 }
 
 func (c *optionalTLSCreds) Info() credentials.ProtocolInfo {
@@ -16,7 +17,7 @@ func (c *optionalTLSCreds) Info() credentials.ProtocolInfo {
 }
 
 func (c *optionalTLSCreds) Clone() credentials.TransportCredentials {
-	return New(c.tc.Clone())
+	return NewWithDynamicOption(c.tc.Clone(), c.dynamicOption)
 }
 
 func (c *optionalTLSCreds) OverrideServerName(name string) error {
@@ -24,6 +25,10 @@ func (c *optionalTLSCreds) OverrideServerName(name string) error {
 }
 
 func (c *optionalTLSCreds) ServerHandshake(conn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	if c.dynamicOption != nil && !c.dynamicOption.IsActive() {
+		return c.tc.ServerHandshake(conn)
+	}
+
 	isTLS, bytes, err := DetectTLS(conn)
 	if err != nil {
 		conn.Close()
@@ -47,7 +52,11 @@ func (c *optionalTLSCreds) ClientHandshake(ctx context.Context, authority string
 }
 
 func New(tc credentials.TransportCredentials) credentials.TransportCredentials {
-	return &optionalTLSCreds{tc: tc}
+	return NewWithDynamicOption(tc, nil)
+}
+
+func NewWithDynamicOption(tc credentials.TransportCredentials, do DynamicOption) credentials.TransportCredentials {
+	return &optionalTLSCreds{tc: tc, dynamicOption: do}
 }
 
 type info struct {

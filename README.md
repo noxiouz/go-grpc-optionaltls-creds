@@ -14,8 +14,13 @@ import (
     "github.com/noxiouz/go-grpc-optionaltls-creds/optionaltls"
 )
 
+// Control in runtime. See docs
+var dynamicOptionF = optionaltls.DynamicOption(func() bool {
+    return true
+})
+
 func createServer(credentials credentials.TransportCredentials) *grpc.Server {
-    serverCredentials = optionaltls.New(credentials)
+    serverCredentials = optionaltls.New(credentials) // optionaltls.NewWithDynamicOption(credentials, dynamicOptionF))
     s := grpc.NewServer(grpc.Creds(serverCredentials))
     return s
 }
