@@ -1,4 +1,4 @@
-![workflow](https://github.com/noxiouz/go-grpc-optionaltls-creds/actions/workflows/go.yml/badge.svg)
+[![Tests](https://github.com/noxiouz/go-grpc-optionaltls-creds/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/noxiouz/go-grpc-optionaltls-creds/actions/workflows/go.yml)
 
 # go-grpc-optionaltls-creds
 The Go language implementation  of gRPC TransportCredentials that supports optional TLS connections.
