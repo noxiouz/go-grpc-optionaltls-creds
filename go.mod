@@ -3,6 +3,8 @@ module github.com/noxiouz/go-grpc-optionaltls-creds
 go 1.16
 
 require (
-	google.golang.org/grpc v1.36.1
-	google.golang.org/grpc/examples v0.0.0-20210326170912-4a19753e9dfd
+	github.com/golang/protobuf v1.4.2 // indirect
+	github.com/google/go-cmp v0.5.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
+	google.golang.org/grpc v1.29.1
 )
